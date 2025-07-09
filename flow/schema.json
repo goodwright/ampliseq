@@ -1,0 +1,230 @@
+{
+    "inputs": [
+        {
+            "name": "Sample Options",
+            "description": "Parameters relating to the sample being analysed.",
+            "advanced": false,
+            "modes": ["FASTQ", "FASTA"],
+            "params": {
+                "input": {
+                    "name": "Samples",
+                    "description": "The samples to process.",
+                    "required": true,
+                    "type": "csv",
+                    "use_tabs": true,
+                    "takes_samples": true,
+                    "sample_types": ["amplicon"],
+                    "modes": ["FASTQ"],
+                    "columns": [
+                        {
+                            "name": "sampleID",
+                            "type": "string",
+                            "from_sample": "name",
+                            "required": true,
+                            "render": false
+                        },
+                        {
+                            "name": "forwardReads",
+                            "type": "data",
+                            "from_sample": 1,
+                            "required": true,
+                            "render": false
+                        },
+                        {
+                            "name": "reverseReads",
+                            "type": "data",
+                            "from_sample": 2,
+                            "required": false,
+                            "render": false
+                        }
+                    ]
+                },
+                "FW_primer": {
+                    "name": "Forward Primer",
+                    "description": "The forward primer to use for the amplicon.",
+                    "required": true,
+                    "type": "string",
+                    "modes": ["FASTQ"],
+                    "render": true
+                },
+                "RV_primer": {
+                    "name": "Reverse Primer",
+                    "description": "The reverse primer to use for the amplicon.",
+                    "required": true,
+                    "type": "string",
+                    "modes": ["FASTQ"],
+                    "render": true
+                },
+                "input_fasta": {
+                    "name": "FASTA File",
+                    "description": "The FASTA file to use for the analysis.",
+                    "required": false,
+                    "type": "data",
+                    "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
+                    "modes": ["FASTA"],
+                    "render": true
+                },
+                "dada_ref_taxonomy": {
+                    "name": "Taxonomy Database",
+                    "description": "Name of supported database, and optionally also version number.",
+                    "required": true,
+                    "type": "string",
+                    "default": "silva=138.2",
+                    "valid": [
+                        "coidb",
+                        "coidb=221216",
+                        "greengenes2",
+                        "greengenes2=2024.09",
+                        "gtdb",
+                        "gtdb=R05-RS95",
+                        "gtdb=R06-RS202",
+                        "gtdb=R07-RS207",
+                        "gtdb=R08-RS214",
+                        "gtdb=R09-RS220",
+                        "gtdb=R10-RS226",
+                        "midori2-co1",
+                        "midori2-co1=gb250",
+                        "plantae-bold-trnl",
+                        "plantae-bold-trnl=20240510",
+                        "plantae-bold-its1",
+                        "plantae-bold-its1=20240510",
+                        "pr2",
+                        "pr2=4.13.0",
+                        "pr2=4.14.0",
+                        "pr2=5.0.0",
+                        "pr2=5.1.0",
+                        "rdp",
+                        "rdp=18",
+                        "sbdi-gtdb",
+                        "sbdi-gtdb=R10-RS226-1",
+                        "sbdi-gtdb=R09-RS220-2",
+                        "sbdi-gtdb=R09-RS220-1",
+                        "sbdi-gtdb=R08-RS214-1",
+                        "sbdi-gtdb=R07-RS207-1",
+                        "sbdi-gtdb=R06-RS202-3",
+                        "sbdi-gtdb=R06-RS202-1",
+                        "silva",
+                        "silva=138.2",
+                        "silva=138",
+                        "silva=132",
+                        "unite-alleuk",
+                        "unite-alleuk=10.0",
+                        "unite-alleuk=9.0",
+                        "unite-alleuk=8.3",
+                        "unite-alleuk=8.2",
+                        "unite-fungi",
+                        "unite-fungi=10.0",
+                        "unite-fungi=9.0",
+                        "unite-fungi=8.3",
+                        "unite-fungi=8.2",
+                        "zehr-nifh",
+                        "zehr-nifh=2.5.0"
+                    ],
+                    "modes": ["FASTA"],
+                    "render": true
+                },
+                "dada_assign_taxlevels": {
+                    "name": "Taxonomic Levels",
+                    "description": "Taxonomic levels to assign taxonomy to.",
+                    "required": false,
+                    "type": "string",
+                    "default": "K,P,C,O,F,Genus",
+                    "modes": ["FASTA"],
+                    "render": true
+                },
+                "filter_codons": {
+                    "name": "Filter Codons",
+                    "description": "Filter codons.",
+                    "required": false,
+                    "type": "boolean",
+                    "modes": ["FASTA"],
+                    "default": true,
+                    "render": true
+                },
+                "orf_end": {
+                    "name": "ORF End",
+                    "description": "ORF end.",
+                    "required": false,
+                    "type": "integer",
+                    "modes": ["FASTA"],
+                    "default": 30,
+                    "render": true
+                },
+                "max_len_asv": {
+                    "name": "Max Length ASV",
+                    "description": "Max length of ASV.",
+                    "required": false,
+                    "type": "integer",
+                    "modes": ["FASTA"],
+                    "default": 265,
+                    "render": true
+                },
+                "filter_ssu": {
+                    "name": "Filter SSU",
+                    "description": "Filter SSU.",
+                    "required": false,
+                    "type": "string",
+                    "default": "bac",
+                    "modes": ["FASTA"],
+                    "render": true
+                },
+                "skip_qiime": {
+                    "name": "Skip QIIME",
+                    "description": "Skip QIIME.",
+                    "required": false,
+                    "type": "boolean",
+                    "default": true,
+                    "modes": ["FASTA"],
+                    "render": true
+                }
+            }
+        },
+        {
+            "name": "Metadata Options",
+            "description": "Parameters relating to the metadata being used.",
+            "advanced": false,
+            "params": {
+                "metadata": {
+                    "name": "Metadata File",
+                    "description": "The metadata file to use for the analysis.",
+                    "required": false,
+                    "type": "data",
+                    "pattern": "^\\S+\\.tsv$",
+                    "render": true
+                }
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "name": "Taxonomic classification",
+            "description": "Taxonomic classification of the ASVs.",
+            "filetype": "tsv",
+            "process": "DADA2_ADDSPECIES"
+        },
+        {
+            "name": "Quality stats",
+            "description": "Quality stats.",
+            "filetype": "pdf",
+            "process": "DADA2_QUALITY2"
+        },
+        {
+            "name": "MultiQC report",
+            "description": "Report aggregating all QC reporting including FastQC, alignment stats and DeSeq2 plots.",
+            "filetype": "html",
+            "process": "MULTIQC"
+        },
+        {
+            "name": "Summary report",
+            "description": "Summary report of the analysis.",
+            "filetype": "html",
+            "process": "SUMMARY_REPORT"
+        },
+        {
+            "name": "Summary SVGs",
+            "description": "Summary SVGs of the analysis.",
+            "filetype": "svg",
+            "process": "SUMMARY_REPORT"
+        }
+    ]
+}
