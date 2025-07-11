@@ -1,10 +1,13 @@
 {
     "inputs": [
         {
-            "name": "Sample Options",
-            "description": "Parameters relating to the sample being analysed.",
+            "name": "Primary Options",
+            "description": "The most important options for the pipeline. You can either provide raw samples, or a pre-processed FASTA file.",
             "advanced": false,
-            "modes": ["FASTQ", "FASTA"],
+            "modes": [
+                "FASTQ",
+                "FASTA"
+            ],
             "params": {
                 "input": {
                     "name": "Samples",
@@ -58,17 +61,334 @@
                 "input_fasta": {
                     "name": "FASTA File",
                     "description": "The FASTA file to use for the analysis.",
-                    "required": false,
+                    "required": true,
                     "type": "data",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
                     "modes": ["FASTA"],
                     "render": true
                 },
-                "dada_ref_taxonomy": {
-                    "name": "Taxonomy Database",
-                    "description": "Name of supported database, and optionally also version number.",
-                    "required": true,
+                "metadata": {
+                    "name": "Metadata File",
+                    "description": "The metadata file to use for the analysis.",
+                    "required": false,
+                    "modes": [
+                        "FASTQ",
+                        "FASTA"
+                    ],
+                    "type": "data",
+                    "pattern": "^\\S+\\.tsv$"
+                }
+            }
+        },
+        {
+            "name": "Sequencing input",
+            "description": "Options relating to the sequencing input.",
+            "advanced": true,
+            "params": {
+                "illumina_novaseq": {
+                    "name": "Illumina Novaseq",
+                    "type": "boolean",
+                    "description": "If data has binned quality scores such as Illumina NovaSeq"
+                },
+                "pacbio": {
+                    "name": "Pacbio",
+                    "type": "boolean",
+                    "description": "If data is single-ended PacBio reads instead of Illumina"
+                },
+                "iontorrent": {
+                    "name": "Iontorrent",
+                    "type": "boolean",
+                    "description": "If data is single-ended IonTorrent reads instead of Illumina"
+                },
+                "single_end": {
+                    "name": "Single End",
+                    "type": "boolean",
+                    "description": "If data is single-ended Illumina reads instead of paired-end"
+                },
+                "illumina_pe_its": {
+                    "name": "Illumina Pe Its",
+                    "type": "boolean",
+                    "description": "If analysing ITS amplicons or any other region with large length variability with Illumina paired end reads"
+                },
+                "quality_type": {
+                    "name": "Quality Type",
                     "type": "string",
+                    "default": "Auto",
+                    "description": "Type of quality scores in raw read data",
+                    "valid": [
+                        "Auto",
+                        "FastqQuality",
+                        "SFastqQuality"
+                    ]
+                },
+                "multiple_sequencing_runs": {
+                    "name": "Multiple Sequencing Runs",
+                    "type": "boolean",
+                    "description": "If using `--input_folder`: samples were sequenced in multiple sequencing runs"
+                },
+                "extension": {
+                    "name": "Extension",
+                    "type": "string",
+                    "default": "/*_R{1,2}_001.fastq.gz",
+                    "description": "If using `--input_folder`: naming of sequencing files"
+                },
+                "min_read_counts": {
+                    "name": "Min Read Counts",
+                    "type": "number",
+                    "default": 1,
+                    "description": "Set read count threshold for failed samples."
+                },
+                "ignore_empty_input_files": {
+                    "name": "Ignore Empty Input Files",
+                    "type": "boolean",
+                    "description": "Ignore input files with too few reads."
+                }
+            }
+        },
+        {
+            "name": "Primer removal",
+            "description": "Spurious sequences sometimes lack primer sequences and primers introduce errors that can be removed in that step",
+            "advanced": true,
+            "params": {
+                "retain_untrimmed": {
+                    "name": "Retain Untrimmed",
+                    "type": "boolean",
+                    "description": "Cutadapt will retain untrimmed reads, choose only if input reads are not expected to contain primer sequences."
+                },
+                "cutadapt_min_overlap": {
+                    "name": "Cutadapt Min Overlap",
+                    "type": "number",
+                    "default": 3,
+                    "description": "Sets the minimum overlap for valid matches of primer sequences with reads for cutadapt (-O)."
+                },
+                "cutadapt_max_error_rate": {
+                    "name": "Cutadapt Max Error Rate",
+                    "type": "number",
+                    "default": 0.1,
+                    "description": "Sets the maximum error rate for valid matches of primer sequences with reads for cutadapt (-e)."
+                },
+                "double_primer": {
+                    "name": "Double Primer",
+                    "type": "boolean",
+                    "description": "Cutadapt will be run twice to ensure removal of potential double primers"
+                },
+                "ignore_failed_trimming": {
+                    "name": "Ignore Failed Trimming",
+                    "type": "boolean",
+                    "description": "Ignore files with too few reads after trimming."
+                }
+            }
+        },
+        {
+            "name": "Read trimming and quality filtering",
+            "description": "Read trimming and quality filtering is supposed to reduce spurious results and aid error correction",
+            "advanced": true,
+            "params": {
+                "trunclenf": {
+                    "name": "Trunclenf",
+                    "type": "number",
+                    "description": "DADA2 read truncation value for forward strand, set this to 0 for no truncation"
+                },
+                "trunclenr": {
+                    "name": "Trunclenr",
+                    "type": "number",
+                    "description": "DADA2 read truncation value for reverse strand, set this to 0 for no truncation"
+                },
+                "trunc_qmin": {
+                    "name": "Trunc Qmin",
+                    "type": "number",
+                    "default": 25,
+                    "description": "If --trunclenf and --trunclenr are not set, these values will be automatically determined using this median quality score"
+                },
+                "trunc_rmin": {
+                    "name": "Trunc Rmin",
+                    "type": "number",
+                    "default": 0.75,
+                    "description": "Assures that values chosen with --trunc_qmin will retain a fraction of reads.",
+                    "minimum": 0,
+                    "maximum": 1
+                },
+                "max_ee": {
+                    "name": "Max Ee",
+                    "type": "number",
+                    "default": 2,
+                    "description": "DADA2 read filtering option"
+                },
+                "min_len": {
+                    "name": "Min Len",
+                    "type": "number",
+                    "default": 50,
+                    "description": "DADA2 read filtering option"
+                },
+                "max_len": {
+                    "name": "Max Len",
+                    "type": "number",
+                    "description": "DADA2 read filtering option"
+                },
+                "ignore_failed_filtering": {
+                    "name": "Ignore Failed Filtering",
+                    "type": "boolean",
+                    "description": "Ignore files with too few reads after quality filtering."
+                }
+            }
+        },
+        {
+            "name": "Amplicon Sequence Variants (ASV) calculation",
+            "description": "Options relating to the ASV calculation.",
+            "advanced": true,
+            "params": {
+                "sample_inference": {
+                    "name": "Sample Inference",
+                    "type": "string",
+                    "default": "independent",
+                    "description": "Mode of sample inference: \"independent\", \"pooled\" or \"pseudo\"",
+                    "valid": [
+                        "independent",
+                        "pooled",
+                        "pseudo"
+                    ]
+                },
+                "mergepairs_strategy": {
+                    "name": "Mergepairs Strategy",
+                    "type": "string",
+                    "default": "merge",
+                    "description": "Strategy to merge paired end reads. When paired end reads are not sufficiently overlapping for merging, you can use \"concatenate\" (not recommended). When you have a mix of overlapping and non overlapping reads use \"consensus\"",
+                    "valid": [
+                        "merge",
+                        "concatenate",
+                        "consensus"
+                    ]
+                },
+                "mergepairs_consensus_match": {
+                    "name": "Mergepairs Consensus Match",
+                    "type": "number",
+                    "default": 1,
+                    "description": "The score assigned for each matching base pair during sequence alignment."
+                },
+                "mergepairs_consensus_mismatch": {
+                    "name": "Mergepairs Consensus Mismatch",
+                    "type": "number",
+                    "default": -2,
+                    "description": "The penalty score assigned for each mismatched base pair during sequence alignment."
+                },
+                "mergepairs_consensus_gap": {
+                    "name": "Mergepairs Consensus Gap",
+                    "type": "number",
+                    "default": -4,
+                    "description": "The penalty score assigned for each gap introduced during sequence alignment."
+                },
+                "mergepairs_consensus_minoverlap": {
+                    "name": "Mergepairs Consensus Minoverlap",
+                    "type": "number",
+                    "default": 12,
+                    "description": "The minimum number of overlapping base pairs required to merge forward and reverse reads."
+                },
+                "mergepairs_consensus_maxmismatch": {
+                    "name": "Mergepairs Consensus Maxmismatch",
+                    "type": "number",
+                    "default": 0,
+                    "description": "The maximum number of mismatches allowed within the overlapping region for merging reads."
+                },
+                "mergepairs_consensus_percentile_cutoff": {
+                    "name": "Mergepairs Consensus Percentile Cutoff",
+                    "type": "number",
+                    "default": 0.001,
+                    "description": "The percentile used to determine a stringent cutoff which will correspond to the minimum observed overlap in the dataset. This ensures that only read pairs with high overlap are merged into consensus sequences. Those with insufficient overlap are concatenated."
+                }
+            }
+        },
+        {
+            "name": "ASV post processing",
+            "description": "ASV post-processing takes place after ASV computation but before taxonomic assignment, it will affect all downstream processes",
+            "advanced": true,
+            "params": {
+                "vsearch_cluster": {
+                    "name": "Vsearch Cluster",
+                    "type": "boolean",
+                    "description": "Post-cluster ASVs with VSEARCH"
+                },
+                "vsearch_cluster_id": {
+                    "name": "Vsearch Cluster Id",
+                    "type": "number",
+                    "default": 0.97,
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Pairwise Identity value used when post-clustering ASVs if `--vsearch_cluster` option is used (default: 0.97)."
+                },
+                "raise_filter_stacksize": {
+                    "name": "Raise Filter Stacksize",
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "Raise stack size when filtering VSEARCH clusters"
+                },
+                "filter_ssu": {
+                    "name": "Filter Ssu",
+                    "type": "string",
+                    "default": "bac",
+                    "description": "Enable SSU filtering. Comma separated list of kingdoms (domains) in Barrnap, a combination (or one) of \"bac\", \"arc\", \"mito\", and \"euk\". ASVs that have their lowest evalue in that kingdoms are kept.",
+                    "valid": [
+                        "bac,arc,mito,euk",
+                        "bac",
+                        "arc",
+                        "mito",
+                        "euk",
+                        "bac,arc",
+                        "bac,mito",
+                        "bac,euk",
+                        "arc,mito",
+                        "arc,euk",
+                        "mito,euk",
+                        "bac,arc,mito",
+                        "bac,mito,euk",
+                        "arc,mito,euk"
+                    ]
+                },
+                "min_len_asv": {
+                    "name": "Min Len Asv",
+                    "type": "number",
+                    "description": "Minimal ASV length"
+                },
+                "max_len_asv": {
+                    "name": "Max Len Asv",
+                    "type": "number",
+                    "default": 256,
+                    "description": "Maximum ASV length"
+                },
+                "filter_codons": {
+                    "name": "Filter Codons",
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "Filter ASVs based on codon usage"
+                },
+                "orf_start": {
+                    "name": "Orf Start",
+                    "type": "number",
+                    "default": 1,
+                    "description": "Starting position of codon tripletts"
+                },
+                "orf_end": {
+                    "name": "Orf End",
+                    "type": "number",
+                    "default": 30,
+                    "description": "Ending position of codon tripletts"
+                },
+                "stop_codons": {
+                    "name": "Stop Codons",
+                    "type": "string",
+                    "default": "TAA,TAG",
+                    "description": "Define stop codons"
+                }
+            }
+        },
+        {
+            "name": "Taxonomic database",
+            "description": "Choose a method and database for taxonomic assignments to single-region amplicons",
+            "advanced": true,
+            "params": {
+                "dada_ref_taxonomy": {
+                    "name": "Dada Ref Taxonomy",
+                    "type": "string",
+                    "description": "Name of supported database, and optionally also version number",
                     "default": "silva=138.2",
                     "valid": [
                         "coidb",
@@ -119,78 +439,459 @@
                         "unite-fungi=8.2",
                         "zehr-nifh",
                         "zehr-nifh=2.5.0"
-                    ],
-                    "modes": ["FASTA"],
-                    "render": true
+                    ]
+                },
+                "dada_ref_tax_custom": {
+                    "name": "Dada Ref Tax Custom",
+                    "type": "string",
+                    "description": "Path to a custom DADA2 reference taxonomy database"
+                },
+                "dada_ref_tax_custom_sp": {
+                    "name": "Dada Ref Tax Custom Sp",
+                    "type": "string",
+                    "description": "Path to a custom DADA2 reference taxonomy database for species assignment"
                 },
                 "dada_assign_taxlevels": {
-                    "name": "Taxonomic Levels",
-                    "description": "Taxonomic levels to assign taxonomy to.",
-                    "required": false,
+                    "name": "Dada Assign Taxlevels",
                     "type": "string",
                     "default": "K,P,C,O,F,Genus",
-                    "modes": ["FASTA"],
-                    "render": true
+                    "description": "Comma separated list of taxonomic levels used in DADA2's assignTaxonomy function"
                 },
-                "filter_codons": {
-                    "name": "Filter Codons",
-                    "description": "Filter codons.",
-                    "required": false,
+                "cut_dada_ref_taxonomy": {
+                    "name": "Cut Dada Ref Taxonomy",
                     "type": "boolean",
-                    "modes": ["FASTA"],
-                    "default": true,
-                    "render": true
+                    "description": "If the expected amplified sequences are extracted from the DADA2 reference taxonomy database"
                 },
-                "orf_end": {
-                    "name": "ORF End",
-                    "description": "ORF end.",
-                    "required": false,
-                    "type": "integer",
-                    "modes": ["FASTA"],
-                    "default": 30,
-                    "render": true
+                "dada_addspecies_allowmultiple": {
+                    "name": "Dada Addspecies Allowmultiple",
+                    "type": "boolean",
+                    "description": "If multiple exact matches against different species are returned"
                 },
-                "max_len_asv": {
-                    "name": "Max Length ASV",
-                    "description": "Max length of ASV.",
-                    "required": false,
-                    "type": "integer",
-                    "modes": ["FASTA"],
-                    "default": 265,
-                    "render": true
+                "dada_taxonomy_rc": {
+                    "name": "Dada Taxonomy Rc",
+                    "type": "boolean",
+                    "description": "If reverse-complement of each sequences will be also tested for classification"
                 },
-                "filter_ssu": {
-                    "name": "Filter SSU",
-                    "description": "Filter SSU.",
-                    "required": false,
+                "dada_assign_chunksize": {
+                    "name": "Dada Assign Chunksize",
+                    "type": "number",
+                    "description": "ASV fasta will be subset into chunks of this size for classification",
+                    "default": 10000
+                },
+                "pplace_tree": {
+                    "name": "Pplace Tree",
                     "type": "string",
-                    "default": "bac",
-                    "modes": ["FASTA"],
-                    "render": true
+                    "description": "Newick file with reference phylogenetic tree. Requires also `--pplace_aln` and `--pplace_model`."
                 },
-                "skip_qiime": {
-                    "name": "Skip QIIME",
-                    "description": "Skip QIIME.",
-                    "required": false,
+                "pplace_aln": {
+                    "name": "Pplace Aln",
+                    "type": "string",
+                    "description": "File with reference sequences. Requires also `--pplace_tree` and `--pplace_model`."
+                },
+                "pplace_model": {
+                    "name": "Pplace Model",
+                    "type": "string",
+                    "description": "Phylogenetic model to use in placement, e.g. 'LG+F' or 'GTR+I+F'. Requires also `--pplace_tree` and `--pplace_aln`."
+                },
+                "pplace_alnmethod": {
+                    "name": "Pplace Alnmethod",
+                    "type": "string",
+                    "description": "Method used for alignment, \"hmmer\" or \"mafft\"",
+                    "default": "hmmer",
+                    "valid": [
+                        "hmmer",
+                        "mafft"
+                    ]
+                },
+                "pplace_taxonomy": {
+                    "name": "Pplace Taxonomy",
+                    "type": "string",
+                    "description": "Tab-separated file with taxonomy assignments of reference sequences."
+                },
+                "qiime_ref_taxonomy": {
+                    "name": "Qiime Ref Taxonomy",
+                    "type": "string",
+                    "description": "Name of supported database, and optionally also version number",
+                    "valid": [
+                        "silva=138",
+                        "silva",
+                        "greengenes85",
+                        "greengenes2",
+                        "greengenes2=2024.09",
+                        "greengenes2=2022.10"
+                    ]
+                },
+                "qiime_ref_tax_custom": {
+                    "name": "Qiime Ref Tax Custom",
+                    "type": "string",
+                    "description": "Path to files of a custom QIIME2 reference taxonomy database (tarball, or two comma-separated files)"
+                },
+                "classifier": {
+                    "name": "Classifier",
+                    "type": "string",
+                    "description": "Path to QIIME2 trained classifier file (typically *-classifier.qza)"
+                },
+                "kraken2_ref_taxonomy": {
+                    "name": "Kraken2 Ref Taxonomy",
+                    "type": "string",
+                    "description": "Name of supported database, and optionally also version number",
+                    "valid": [
+                        "silva",
+                        "silva=138",
+                        "silva=132",
+                        "rdp",
+                        "rdp=18",
+                        "greengenes",
+                        "greengenes=13.5",
+                        "standard",
+                        "standard=20240904",
+                        "standard=20230605"
+                    ]
+                },
+                "kraken2_ref_tax_custom": {
+                    "name": "Kraken2 Ref Tax Custom",
+                    "type": "string",
+                    "description": "Path to a custom Kraken2 reference taxonomy database (*.tar.gz|*.tgz archive or folder)"
+                },
+                "kraken2_assign_taxlevels": {
+                    "name": "Kraken2 Assign Taxlevels",
+                    "type": "string",
+                    "description": "Comma separated list of taxonomic levels used in Kraken2. Will overwrite default values."
+                },
+                "kraken2_confidence": {
+                    "name": "Kraken2 Confidence",
+                    "type": "number",
+                    "default": 0.0,
+                    "description": "Confidence score threshold for taxonomic classification.",
+                    "minimum": 0,
+                    "maximum": 1
+                },
+                "sintax_ref_taxonomy": {
+                    "name": "Sintax Ref Taxonomy",
+                    "type": "string",
+                    "description": "Name of supported database, and optionally also version number",
+                    "valid": [
+                        "coidb",
+                        "coidb=221216",
+                        "unite-fungi",
+                        "unite-fungi=10.0",
+                        "unite-fungi=9.0",
+                        "unite-fungi=8.3",
+                        "unite-fungi=8.2",
+                        "unite-alleuk",
+                        "unite-alleuk=10.0",
+                        "unite-alleuk=9.0",
+                        "unite-alleuk=8.3",
+                        "unite-alleuk=8.2"
+                    ]
+                },
+                "addsh": {
+                    "name": "Addsh",
                     "type": "boolean",
-                    "default": true,
-                    "modes": ["FASTA"],
-                    "render": true
+                    "description": "If ASVs should be assigned to UNITE species hypotheses (SHs). Only relevant for ITS data."
+                },
+                "cut_its": {
+                    "name": "Cut Its",
+                    "type": "string",
+                    "description": "Part of ITS region to use for taxonomy assignment: \"full\", \"its1\", or \"its2\"",
+                    "default": "none",
+                    "valid": [
+                        "none",
+                        "full",
+                        "its1",
+                        "its2"
+                    ]
+                },
+                "its_partial": {
+                    "name": "Its Partial",
+                    "type": "number",
+                    "description": "Cutoff for partial ITS sequences. Only full sequences by default.",
+                    "default": 0
                 }
             }
         },
         {
-            "name": "Metadata Options",
-            "description": "Parameters relating to the metadata being used.",
-            "advanced": false,
+            "name": "Multi-region taxonomic database",
+            "description": "Choose database for taxonomic assignments with multi-region amplicons using SIDLE",
+            "advanced": true,
             "params": {
-                "metadata": {
-                    "name": "Metadata File",
-                    "description": "The metadata file to use for the analysis.",
-                    "required": false,
-                    "type": "data",
-                    "pattern": "^\\S+\\.tsv$",
-                    "render": true
+                "sidle_ref_taxonomy": {
+                    "name": "Sidle Ref Taxonomy",
+                    "type": "string",
+                    "description": "Name of supported database, and optionally also version number",
+                    "valid": [
+                        "silva",
+                        "silva=128",
+                        "greengenes",
+                        "greengenes=13_8",
+                        "greengenes88"
+                    ]
+                },
+                "sidle_ref_tax_custom": {
+                    "name": "Sidle Ref Tax Custom",
+                    "type": "string",
+                    "description": "Path to reference taxonomy strings (headerless, *.txt)"
+                },
+                "sidle_ref_seq_custom": {
+                    "name": "Sidle Ref Seq Custom",
+                    "type": "string",
+                    "description": "Path to reference taxonomy sequences in fasta format"
+                },
+                "sidle_ref_aln_custom": {
+                    "name": "Sidle Ref Aln Custom",
+                    "type": "string",
+                    "description": "Path to multiple sequence alignment of reference taxonomy sequences in fasta format"
+                },
+                "sidle_ref_tree_custom": {
+                    "name": "Sidle Ref Tree Custom",
+                    "type": "string",
+                    "description": "Path to SIDLE reference taxonomy tree (*.qza)"
+                },
+                "sidle_ref_degenerates": {
+                    "name": "Sidle Ref Degenerates",
+                    "type": "number",
+                    "default": 5,
+                    "min": 0,
+                    "description": "Exclude reference sequences with more than this much degenerates"
+                },
+                "sidle_ref_cleaning": {
+                    "name": "Sidle Ref Cleaning",
+                    "type": "string",
+                    "description": "Arguments for `qiime sidle reconstruct-taxonomy` regarding ad-hoc cleaning"
+                }
+            }
+        },
+        {
+            "name": "ASV filtering",
+            "description": "Filtering by taxonomy or abundance will affect all downstream analysis",
+            "advanced": true,
+            "params": {
+                "exclude_taxa": {
+                    "name": "Exclude Taxa",
+                    "type": "string",
+                    "default": "mitochondria,chloroplast",
+                    "description": "Comma separated list of unwanted taxa, to skip taxa filtering use \"none\""
+                },
+                "min_frequency": {
+                    "name": "Min Frequency",
+                    "type": "number",
+                    "default": 1,
+                    "description": "Abundance filtering"
+                },
+                "min_samples": {
+                    "name": "Min Samples",
+                    "type": "number",
+                    "default": 1,
+                    "description": "Prevalence filtering"
+                }
+            }
+        },
+        {
+            "name": "Downstream analysis",
+            "description": "Metadata is used here to visualize data either for quality control or publication ready figures",
+            "advanced": true,
+            "params": {
+                "metadata_category": {
+                    "name": "Metadata Category",
+                    "type": "string",
+                    "description": "Comma separated list of metadata column headers for statistics."
+                },
+                "metadata_category_barplot": {
+                    "name": "Metadata Category Barplot",
+                    "type": "string",
+                    "description": "Comma separated list of metadata column headers for plotting average relative abundance barplots."
+                },
+                "qiime_adonis_formula": {
+                    "name": "Qiime Adonis Formula",
+                    "type": "string",
+                    "description": "Formula for QIIME2 ADONIS metadata feature importance test for beta diversity distances"
+                },
+                "picrust": {
+                    "name": "Picrust",
+                    "type": "boolean",
+                    "description": "If the functional potential of the bacterial community is predicted."
+                },
+                "sbdiexport": {
+                    "name": "Sbdiexport",
+                    "type": "boolean",
+                    "description": "If data should be exported in SBDI (Swedish biodiversity infrastructure) Excel format."
+                },
+                "diversity_rarefaction_depth": {
+                    "name": "Diversity Rarefaction Depth",
+                    "type": "number",
+                    "default": 500,
+                    "description": "Minimum rarefaction depth for diversity analysis. Any sample below that threshold will be removed."
+                },
+                "tax_agglom_min": {
+                    "name": "Tax Agglom Min",
+                    "type": "number",
+                    "default": 2,
+                    "description": "Minimum taxonomy agglomeration level for taxonomic classifications"
+                },
+                "tax_agglom_max": {
+                    "name": "Tax Agglom Max",
+                    "type": "number",
+                    "default": 6,
+                    "description": "Maximum taxonomy agglomeration level for taxonomic classifications"
+                }
+            }
+        },
+        {
+            "name": "Differential abundance analysis",
+            "description": "Differential abundance analysis relies on provided metadata",
+            "advanced": true,
+            "params": {
+                "ancom_sample_min_count": {
+                    "name": "Ancom Sample Min Count",
+                    "type": "number",
+                    "default": 1,
+                    "description": "Minimum sample counts to retain a sample for ANCOM analysis. Any sample below that threshold will be removed."
+                },
+                "ancom": {
+                    "name": "Ancom",
+                    "type": "boolean",
+                    "description": "Perform differential abundance analysis with ANCOM"
+                },
+                "ancombc": {
+                    "name": "Ancombc",
+                    "type": "boolean",
+                    "description": "Perform differential abundance analysis with ANCOMBC"
+                },
+                "ancombc_formula": {
+                    "name": "Ancombc Formula",
+                    "type": "string",
+                    "description": "Formula to perform differential abundance analysis with ANCOMBC"
+                },
+                "ancombc_formula_reflvl": {
+                    "name": "Ancombc Formula Reflvl",
+                    "type": "string",
+                    "description": "Reference level for `--ancombc_formula`"
+                },
+                "ancombc_effect_size": {
+                    "name": "Ancombc Effect Size",
+                    "type": "number",
+                    "default": 1,
+                    "minimum": 0,
+                    "description": "Effect size threshold for differential abundance barplot for `--ancombc` and `--ancombc_formula`"
+                },
+                "ancombc_significance": {
+                    "name": "Ancombc Significance",
+                    "type": "number",
+                    "default": 0.05,
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Significance threshold for differential abundance barplot for `--ancombc` and `--ancombc_formula`"
+                }
+            }
+        },
+        {
+            "name": "Pipeline summary report",
+            "description": "Customization of the pipeline report",
+            "advanced": true,
+            "params": {
+                "report_title": {
+                    "name": "Report Title",
+                    "type": "string",
+                    "default": "Summary of analysis results",
+                    "description": "String used as report title"
+                },
+                "report_abstract": {
+                    "name": "Report Abstract",
+                    "type": "string",
+                    "description": "Path to Markdown file (md) that replaces the 'Abstract' section"
+                }
+            }
+        },
+        {
+            "name": "Skipping specific steps",
+            "description": "",
+            "advanced": true,
+            "params": {
+                "skip_fastqc": {
+                    "name": "Skip Fastqc",
+                    "type": "boolean",
+                    "description": "Skip FastQC"
+                },
+                "skip_cutadapt": {
+                    "name": "Skip Cutadapt",
+                    "type": "boolean",
+                    "description": "Skip primer trimming with cutadapt. This is not recommended! Use only in case primer sequences were removed before and the data does not contain any primer sequences."
+                },
+                "skip_dada_quality": {
+                    "name": "Skip Dada Quality",
+                    "type": "boolean",
+                    "description": "Skip quality check with DADA2. Can only be skipped when `--trunclenf` and `--trunclenr` are set."
+                },
+                "skip_barrnap": {
+                    "name": "Skip Barrnap",
+                    "type": "boolean",
+                    "description": "Skip annotating SSU matches."
+                },
+                "skip_qiime": {
+                    "name": "Skip Qiime",
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "Skip all steps that are executed by QIIME2, including QIIME2 software download, taxonomy assignment by QIIME2, barplots, relative abundance tables, diversity analysis, differential abundance testing."
+                },
+                "skip_qiime_downstream": {
+                    "name": "Skip Qiime Downstream",
+                    "type": "boolean",
+                    "description": "Skip steps that are executed by QIIME2 except for taxonomic classification. Skip steps including barplots, relative abundance tables, diversity analysis, differential abundance testing."
+                },
+                "skip_taxonomy": {
+                    "name": "Skip Taxonomy",
+                    "type": "boolean",
+                    "description": "Skip taxonomic classification. Incompatible with `--sbdiexport`"
+                },
+                "skip_dada_taxonomy": {
+                    "name": "Skip Dada Taxonomy",
+                    "type": "boolean",
+                    "description": "Skip taxonomic classification with DADA2"
+                },
+                "skip_dada_addspecies": {
+                    "name": "Skip Dada Addspecies",
+                    "type": "boolean",
+                    "description": "Skip species level when using DADA2 for taxonomic classification. This reduces the required memory dramatically under certain conditions. Incompatible with `--sbdiexport`"
+                },
+                "skip_barplot": {
+                    "name": "Skip Barplot",
+                    "type": "boolean",
+                    "description": "Skip producing barplot"
+                },
+                "skip_abundance_tables": {
+                    "name": "Skip Abundance Tables",
+                    "type": "boolean",
+                    "description": "Skip producing any relative abundance tables"
+                },
+                "skip_alpha_rarefaction": {
+                    "name": "Skip Alpha Rarefaction",
+                    "type": "boolean",
+                    "description": "Skip alpha rarefaction"
+                },
+                "skip_diversity_indices": {
+                    "name": "Skip Diversity Indices",
+                    "type": "boolean",
+                    "description": "Skip alpha and beta diversity analysis"
+                },
+                "skip_phyloseq": {
+                    "name": "Skip Phyloseq",
+                    "type": "boolean",
+                    "description": "Skip exporting phyloseq rds object(s)"
+                },
+                "skip_tse": {
+                    "name": "Skip Tse",
+                    "type": "boolean",
+                    "description": "Skip exporting TreeSummarizedExperiment rds object(s)"
+                },
+                "skip_multiqc": {
+                    "name": "Skip Multiqc",
+                    "type": "boolean",
+                    "description": "Skip MultiQC reporting"
+                },
+                "skip_report": {
+                    "name": "Skip Report",
+                    "type": "boolean",
+                    "description": "Skip Markdown summary report"
                 }
             }
         }
